@@ -31,17 +31,17 @@ class PatternPicker extends StatelessWidget {
           itemCount: StrokePattern.catalog.length,
           separatorBuilder: (_, _) => const SizedBox(width: 8),
           itemBuilder: (context, i) {
-          final pattern = StrokePattern.catalog[i];
-          final on = i == selected;
-          return _Card(
-            pattern: pattern,
-            selected: on,
-            onTap: () {
-              HapticFeedback.selectionClick();
-              onSelect(i);
-            },
-          );
-        },
+            final pattern = StrokePattern.catalog[i];
+            final on = i == selected;
+            return _Card(
+              pattern: pattern,
+              selected: on,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSelect(i);
+              },
+            );
+          },
         ),
       ),
     );
@@ -147,10 +147,7 @@ class _WavePainter extends CustomPainter {
     final shader = LinearGradient(
       colors: lit
           ? const [OssmPalette.pink, OssmPalette.violet, OssmPalette.cyan]
-          : [
-              OssmPalette.textDim,
-              OssmPalette.textMuted.withValues(alpha: 0.7),
-            ],
+          : [OssmPalette.textDim, OssmPalette.textMuted.withValues(alpha: 0.7)],
     ).createShader(Offset.zero & size);
 
     if (lit) {

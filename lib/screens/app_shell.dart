@@ -44,7 +44,58 @@ class _AppShellState extends State<AppShell> {
                   children: [
                     ControlScreen(session: widget.session),
                     DeviceScreen(session: widget.session),
-                    const ProfileScreen(),
+                    ProfileScreen(session: widget.session),
+                  ],
+                ),
+              ),
+              ListenableBuilder(
+                listenable: widget.session,
+                builder: (context, _) => Column(
+                  children: [
+                    if (widget.session.demo)
+                      const Text(
+                        '离线演示 · 不连接真实设备',
+                        style: TextStyle(
+                          color: OssmPalette.warning,
+                          fontSize: 12,
+                        ),
+                      ),
+                    if (widget.session.message != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          widget.session.message!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: OssmPalette.textMuted,
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 4,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFFF6B7D),
+                            side: const BorderSide(color: Color(0xFF81364D)),
+                          ),
+                          onPressed: widget.session.connected
+                              ? widget.session.emergencyStop
+                              : null,
+                          icon: const Icon(Icons.stop_circle_outlined),
+                          label: const Text('紧急停止'),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -1,7 +1,7 @@
 name: ossm_app
 description: "OSSM machine controller."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.13.1
@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_blue_plus: ^2.3.13
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

@@ -128,10 +128,8 @@ class _SpeedDialState extends State<SpeedDial>
               builder: (context, _) {
                 return Listener(
                   behavior: HitTestBehavior.opaque,
-                  onPointerDown: (e) =>
-                      _down(e, Offset(side / 2, side / 2)),
-                  onPointerMove: (e) =>
-                      _move(e, Offset(side / 2, side / 2)),
+                  onPointerDown: (e) => _down(e, Offset(side / 2, side / 2)),
+                  onPointerMove: (e) => _move(e, Offset(side / 2, side / 2)),
                   onPointerUp: _up,
                   onPointerCancel: (_) {
                     _pointer = null;
@@ -143,10 +141,12 @@ class _SpeedDialState extends State<SpeedDial>
                       running: widget.running,
                       pulse: _pulse.value,
                     ),
-                    child: Center(child: _DialReadout(
-                      speed: widget.speed,
-                      running: widget.running,
-                    )),
+                    child: Center(
+                      child: _DialReadout(
+                        speed: widget.speed,
+                        running: widget.running,
+                      ),
+                    ),
                   ),
                 );
               },
@@ -172,27 +172,27 @@ class _DialReadout extends StatelessWidget {
         Text(
           '速  度',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 4,
-                color: running
-                    ? OssmPalette.magenta.withValues(alpha: 0.85)
-                    : OssmPalette.textDim,
-              ),
+            letterSpacing: 4,
+            color: running
+                ? OssmPalette.magenta.withValues(alpha: 0.85)
+                : OssmPalette.textDim,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           '${speed.round()}',
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                fontSize: 76,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            fontSize: 76,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
         Text(
           '%',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontSize: 13,
-                letterSpacing: 2,
-                color: OssmPalette.textMuted,
-              ),
+            fontSize: 13,
+            letterSpacing: 2,
+            color: OssmPalette.textMuted,
+          ),
         ),
       ],
     );

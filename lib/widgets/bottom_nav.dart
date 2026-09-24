@@ -4,7 +4,11 @@ import 'package:flutter/services.dart';
 import '../theme/palette.dart';
 
 class NavItem {
-  const NavItem({required this.label, required this.icon, required this.activeIcon});
+  const NavItem({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+  });
 
   final String label;
   final IconData icon;
@@ -12,11 +16,7 @@ class NavItem {
 }
 
 class BottomNav extends StatelessWidget {
-  const BottomNav({
-    super.key,
-    required this.index,
-    required this.onChanged,
-  });
+  const BottomNav({super.key, required this.index, required this.onChanged});
 
   final int index;
   final ValueChanged<int> onChanged;
@@ -75,11 +75,7 @@ class BottomNav extends StatelessWidget {
 }
 
 class _Tab extends StatelessWidget {
-  const _Tab({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-  });
+  const _Tab({required this.item, required this.selected, required this.onTap});
 
   final NavItem item;
   final bool selected;
@@ -94,11 +90,7 @@ class _Tab extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            selected ? item.activeIcon : item.icon,
-            size: 22,
-            color: color,
-          ),
+          Icon(selected ? item.activeIcon : item.icon, size: 22, color: color),
           const SizedBox(height: 4),
           Text(
             item.label,

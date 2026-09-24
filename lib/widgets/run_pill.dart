@@ -4,11 +4,7 @@ import 'package:flutter/services.dart';
 import '../theme/palette.dart';
 
 class RunPill extends StatelessWidget {
-  const RunPill({
-    super.key,
-    required this.running,
-    required this.onToggle,
-  });
+  const RunPill({super.key, required this.running, required this.onToggle});
 
   final bool running;
   final VoidCallback onToggle;

@@ -1,156 +1,79 @@
 # OSSM App
 
-Flutter 客户端，用于控制基于 OSSM 方案改造的直线往复设备。
+Flutter Android 控制器，配套 ESP32-S3 + RS485 + 57AIM30 固件。App 0.2.0，推荐固件 0.3.1。
 
-目标硬件：ESP32-S3 + RS485 + 翼志 57AIM30（Gold Motor）。通信语义对齐官方 rad-ble 与 StrokeEngine。本仓库仅包含 App。
+## 已实现
 
-当前版本（0.1.0）为 UI 骨架：可在 Android 模拟器中交互，无蓝牙、无真实遥测。
+- BLE 服务过滤扫描、权限请求、设备发现、连接、断开及错误提示。
+- rad-ble v1 JSON 信封、递增请求 ID、完成响应确认、10 秒控制租约与每 3 秒续约。
+- 真实电机状态：运行、回零、电压、温度、电流、位置、总线在线和故障代码。无模拟电量。
+- 旋转速度盘、行程 / 深度尺、手感 0–100（50 中性）、七种固件原生模式。
+- 未连接、无控制权、状态过期、电机离线、未回零或故障时不能启动。
+- 三个页面都可见的急停；停止优先，取消待发参数；设备运行态由遥测确认。
+- 默认速度上限 40%、定时停止（默认 10 分钟）、默认切后台停止并断开。
+- 个人参数预设与偏好保存在本机；载入预设不会自动启动。
+- 独立离线演示，可体验回零 / 调参 / 启停，不创建蓝牙连接。
 
----
+## 使用
+
+1. 安装 `build/app/outputs/flutter-apk/app-release.apk`。当前使用开发签名，供本地联调。
+2. 设备页扫描并选择 OSSM，允许附近设备权限；Android 11 及以下需要定位权限及系统定位服务。
+3. 停机状态下确认实际可用行程，必要时修改。**回零是寻找零点，不会自动测量全行程。**
+4. 清空机械行程后执行回零；等待设备确认完成。
+5. 回到控制页调节速度 / 行程 / 模式，点击启动。
+6. 无硬件时可在设备页启用离线演示；演示状态不会伪装成真机数据。
+
+连接不会自动恢复运动。App 连接并取得控制权后先发送停止，之后同步状态。无线急停依赖蓝牙和固件执行，不能替代实体急停。
 
 ## 界面预览
 
-<p align="center">
-  <img src="docs/screenshot.png" alt="OSSM App 控制页" width="340" />
-</p>
+以下为 Flutter 渲染的**演示数据**，并非硬件联调截图。
 
----
+<img src="docs/control-preview.png" width="300" alt="控制页" />
+<img src="docs/device-preview.png" width="300" alt="设备页" />
+<img src="docs/profile-preview.png" width="300" alt="个人偏好" />
 
-## 功能状态
+## 固件
 
-记录截止 2026-08-27。
+本机实际目录是 `H:\ossm_fireware\OSSM_Fireware`（用户最初给出的 `H:\ossm\_fireware` 不存在）。本次已修改固件源码至 0.3.1：
 
-### 已实现
+- `state` 增加 `homed` 和 `travelMm`，BLE 启动校验已回零 / 电机在线 / 无故障。
+- 回零寻找端点及回退循环支持取消；BLE 断开 / 租约失效取消回零。
+- 快速重新连接不会取消正在进行的减速停止。
+- 修复原缓停提前清除运行标记的问题，让安全模块完成减速后再结束运动。
+- 同一运动周期内到达的启动不会覆盖待处理的停止。
+- 清故障成功后复位安全状态并要求重新回零。
+- `session.apply` 只更新 RAM，避免拖动滑条时高频写闪存；`setting.write` 仍按原有规则持久化。
 
-- Android 工程，竖屏锁定
-- 自定义暗色主题（非 Flutter / Material 默认样式）
-- 底部导航：控制、设备、我的（`IndexedStack`，切换页不销毁控制态）
-- 控制页
-  - 速度圆环：相对旋转调节（顺时针增加，逆时针减少）；轻点切换运行
-  - 速度量纲为 **0–100%**，对应协议 `set:speed:<0-100>`
-  - 行程尺：全长表示回零后的可用行程 `_travel`；高亮区间为 `[depth − stroke, depth]`
-    - 拖动区间：修改 Depth
-    - 拖动左端：修改 Stroke
-    - 拖动右端：修改最深点
-  - 波形选择条：匀速、停顿、渐深、交错、急推、脉冲；「自定义」为占位
-- 设备页、我的页：页面框架与只读占位字段
+已在 `build/firmware-validation` 的相同源码副本编译验证。未自动刷写固件或驱动真实电机。
 
-### 已回退
+## 协议与边界
 
-主屏实时波形监视器已删除（轴映射错误，且不符合产品界面预期）。波形仅保留为选择卡片上的静态缩略图。
+见 [联调说明](docs/INTEGRATION.md)。以固件源码和 [rad-ble v1.0.0](https://github.com/researchanddesire/rad-ble/tree/v1.0.0) 为准；根目录旧设计文档是历史草案，部分字段和映射已过时。
 
-### Mock 数据（非设备上报）
+当前交付 Android；没有新增 iOS 工程、OTA、手机端位置流或自绘波形。固件没有完整的自定义波形上传契约，原“自定义”空卡片已替换为真实的第七种 Insist 模式。运动策略沿用设备配置，不在普通控制页切换。
 
-`SessionController` 当前写死以下字段，仅供排版：
+自动定时停止属于 App 会话功能；关闭“后台停止”后，操作系统挂起 App 可能导致租约过期，此时依赖固件断链停止机制。上架前需独立配置正式签名。蓝牙库使用 `License.nonprofit` 对应个人非商业开发；商业发行应遵守 [FlutterBluePlus 许可](https://pub.dev/packages/flutter_blue_plus)。
 
-| 字段 | 现值 | 正式来源 |
-|---|---|---|
-| `connected` | `true` | BLE 连接状态 |
-| `homed` | `true` | 回零 / 软限幅标定完成 |
-| `travelMm` | `150` | 固件测量的 `_travel` |
-| 电压、温度、电量 | 常量 | `state` notify |
-| 行程毫米值 | 百分比 × 150 | 百分比 × 实测 `_travel` |
+## 开发与验证
 
-界面已预留未标定文案，默认未启用。首次启动（未连接或未标定）不应显示 `0 … 150 mm`。
-
----
-
-## 未完成
-
-### 客户端
-
-- [ ] 未连接 / 未标定的默认首启状态（`homed = false`，禁止启动）
-- [ ] 设备页：扫描、配对、回零与软限幅标定、固件信息
-- [ ] 我的页：信息架构未定
-- [ ] Sensation（协议 -100…100）
-- [ ] 自定义波形编辑（精确图表）；「自定义」卡片无响应
-- [ ] 启动缓升 / 停止缓降（曲线在固件；客户端意图层亦未接）
-- [ ] 用户速度上限
-- [ ] 本地持久化（`travelMm`、上次参数）
-- [ ] iOS
-- [ ] 自动化测试
-
-### 通信
-
-- [ ] `flutter_blue_plus`
-- [ ] 按 rad-ble 服务 UUID 过滤扫描
-- [ ] `set:speed|stroke|depth|sensation|pattern`、`go:`、急停
-- [ ] 订阅 `state`（电压、温度、故障、运行态）
-- [ ] 模拟器无 BLE，联调需真机
-
-### 固件（本仓库范围外）
-
-固件不在本仓库。实施顺序：P0 485 → P1 点动与回原点 → P2 运动引擎 → P3 rad-ble → P5 安全与烤机。
-
-架构约束：运动轨迹由 MCU 本地生成；无线链路只传输参数。`% → CPM / 电机指令` 的映射在固件完成。
-
----
-
-## 参数模型
-
-与 [StrokeEngine](https://github.com/theelims/StrokeEngine) 及官方 OSSM BLE 一致：
-
-```
-回零结果：     0 ════════════════════════ _travel
-Depth：                                 ↑ 最深点
-Stroke：                     └─────────┘ 幅度
-实际往复：                   [depth − stroke, depth]
-```
-
-| 名称 | 含义 | 单位 |
-|---|---|---|
-| 可用行程 `_travel` | 机器测量，只读 | mm |
-| Depth | 最深点，相对 `_travel` | 协议 0–100 |
-| Stroke | 冲程幅度，相对 `_travel` | 协议 0–100 |
-| Speed | 归一化速度 | 协议 0–100%；固件映射为 StrokeEngine CPM（次/分钟，一往复为 1） |
-
-官方网页控制器将 Stroke / Depth / Sensation / Pattern 分 Tab 调节，速度仅回显旋钮百分比。本应用将高频控件放在同一屏，语义与协议保持一致。
-
----
-
-## 构建与运行
-
-开发环境（本机当前配置）：
-
-- Flutter 3.47.1 / Dart 3.13.1（`H:\flutter`）
-- Android SDK（`H:\android-sdk`），不依赖 Android Studio
-- 调试 UI：雷电模拟器；BLE：Android 真机
-
-```bat
-set JAVA_HOME=C:\Program Files\Java\jdk-21
-set ANDROID_HOME=H:\android-sdk
-set ANDROID_SDK_ROOT=H:\android-sdk
-set PATH=H:\flutter\bin;H:\android-sdk\platform-tools;%JAVA_HOME%\bin;%PATH%
-
+```powershell
 flutter pub get
-flutter devices
-flutter run -d emulator-5562
+flutter analyze
+flutter test
+flutter build apk --release
 ```
 
----
+Flutter / Dart：`H:\flutter`；Android SDK：`H:\android-sdk`。
 
-## 目录结构
+- 静态分析：无问题。
+- 10 项自动化测试：协议 UUID / JSON、首启与回零门禁、遥测确认、滑条合并 / 限幅、急停优先、断线 / 故障门禁、状态失效、定时停止、预设不自启、两种屏幕尺寸。
+- 页面渲染检查：`flutter test tools/capture_ui_test.dart`（本机中文字体和 Flutter 字体路径，供开发预览）。
+- 固件：ESP32-S3 8MB 配置编译成功；未进行硬件动作验收。
 
-```
-lib/
-  main.dart                      入口；锁定竖屏
-  screens/app_shell.dart         底栏与页面堆栈
-  screens/control_screen.dart    控制
-  screens/device_screen.dart     设备（占位）
-  screens/profile_screen.dart    我的（占位）
-  state/session_controller.dart  会话状态（Mock）
-  models/stroke_pattern.dart     波形采样
-  theme/                         色板与 ThemeData
-  widgets/                       圆环、行程尺、波形卡、底栏
-OSSM-S3-485-BLE-设计文档.md      硬件、485、BLE、运动引擎
-```
+## 目录
 
----
-
-## 参考资料
-
-- 用户文档：https://docs.researchanddesire.com/ossm
-- 网页 BLE 控制器：https://docs.researchanddesire.com/ossm/tools/web-controller
-- 开发文档：https://dev.researchanddesire.com/ossm
-- rad-ble：https://github.com/researchanddesire/rad-ble
-- StrokeEngine：https://github.com/theelims/StrokeEngine
+- `lib/ble/`：协议编码、真实 BLE、独立演示设备、可替换传输接口。
+- `lib/state/session_controller.dart`：会话门禁、参数合并、停止、定时、持久化。
+- `lib/screens/`：控制、设备、我的。
+- `test/`：会话与布局测试，使用测试传输层，不操作硬件。

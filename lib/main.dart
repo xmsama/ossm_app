@@ -20,11 +20,26 @@ class OssmApp extends StatefulWidget {
   State<OssmApp> createState() => _OssmAppState();
 }
 
-class _OssmAppState extends State<OssmApp> {
+class _OssmAppState extends State<OssmApp> with WidgetsBindingObserver {
   final SessionController _session = SessionController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _session.onBackground();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _session.dispose();
     super.dispose();
   }
