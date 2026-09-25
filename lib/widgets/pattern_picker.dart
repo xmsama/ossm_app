@@ -9,122 +9,102 @@ class PatternPicker extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onSelect,
+    this.enabled = true,
   });
 
   final int selected;
   final ValueChanged<int> onSelect;
+  final bool enabled;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: Container(
-        height: 118,
-        decoration: BoxDecoration(
-          color: OssmPalette.surface.withValues(alpha: 0.65),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          scrollDirection: Axis.horizontal,
-          itemCount: StrokePattern.catalog.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 8),
-          itemBuilder: (context, i) {
-            final pattern = StrokePattern.catalog[i];
-            final on = i == selected;
-            return _Card(
-              pattern: pattern,
-              selected: on,
-              onTap: () {
-                HapticFeedback.selectionClick();
-                onSelect(i);
-              },
-            );
-          },
-        ),
+  Widget build(BuildContext context) => SizedBox(
+    height: 74,
+    child: ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      scrollDirection: Axis.horizontal,
+      itemCount: StrokePattern.catalog.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 8),
+      itemBuilder: (context, i) => _Tile(
+        pattern: StrokePattern.catalog[i],
+        selected: i == selected,
+        enabled: enabled,
+        onTap: () {
+          if (!enabled || i == selected) return;
+          HapticFeedback.selectionClick();
+          onSelect(i);
+        },
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _Card extends StatelessWidget {
-  const _Card({
+class _Tile extends StatelessWidget {
+  const _Tile({
     required this.pattern,
     required this.selected,
+    required this.enabled,
     required this.onTap,
   });
 
   final StrokePattern pattern;
-  final bool selected;
+  final bool selected, enabled;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    label: pattern.name,
+    child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        width: 86,
+        width: 70,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           color: selected
               ? OssmPalette.surfaceHi
-              : OssmPalette.surface.withValues(alpha: 0.85),
+              : OssmPalette.surface.withValues(alpha: .7),
           border: Border.all(
             color: selected
-                ? OssmPalette.magenta.withValues(alpha: 0.75)
-                : Colors.white.withValues(alpha: 0.06),
+                ? OssmPalette.magenta.withValues(alpha: .8)
+                : Colors.white.withValues(alpha: .05),
             width: selected ? 1.4 : 1,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: OssmPalette.magenta.withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    spreadRadius: 0,
-                  ),
-                ]
-              : const [],
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-          child: Column(
-            children: [
-              Expanded(
-                child: pattern.isCustom
-                    ? const Center(
-                        child: Icon(
-                          Icons.edit_rounded,
-                          color: OssmPalette.textMuted,
-                          size: 22,
-                        ),
-                      )
-                    : CustomPaint(
-                        painter: _WavePainter(pattern: pattern, lit: selected),
-                        child: const SizedBox.expand(),
-                      ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                pattern.name,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: selected ? OssmPalette.text : OssmPalette.textMuted,
+        child: Opacity(
+          opacity: enabled || selected ? 1 : .5,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 7),
+            child: Column(
+              children: [
+                Expanded(
+                  child: CustomPaint(
+                    painter: PatternWavePainter(pattern: pattern, lit: selected),
+                    child: const SizedBox.expand(),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 5),
+                Text(
+                  pattern.name,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: selected ? OssmPalette.text : OssmPalette.textMuted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _WavePainter extends CustomPainter {
-  _WavePainter({required this.pattern, required this.lit});
+class PatternWavePainter extends CustomPainter {
+  PatternWavePainter({required this.pattern, required this.lit});
 
   final StrokePattern pattern;
   final bool lit;
@@ -137,38 +117,28 @@ class _WavePainter extends CustomPainter {
       final t = i / samples;
       final x = t * size.width;
       final y = pattern.sample(t) * size.height;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
+      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
     }
-
     final shader = LinearGradient(
       colors: lit
           ? const [OssmPalette.pink, OssmPalette.violet, OssmPalette.cyan]
-          : [OssmPalette.textDim, OssmPalette.textMuted.withValues(alpha: 0.7)],
+          : [OssmPalette.textDim, OssmPalette.textMuted.withValues(alpha: .7)],
     ).createShader(Offset.zero & size);
-
     if (lit) {
       canvas.drawPath(
         path,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 6
-          ..strokeJoin = StrokeJoin.round
-          ..strokeCap = StrokeCap.round
+          ..strokeWidth = 5
           ..shader = shader
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
-          ..color = Colors.white.withValues(alpha: 0.55),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
       );
     }
-
     canvas.drawPath(
       path,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.2
+        ..strokeWidth = 2
         ..strokeJoin = StrokeJoin.round
         ..strokeCap = StrokeCap.round
         ..shader = shader,
@@ -176,6 +146,6 @@ class _WavePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WavePainter old) =>
+  bool shouldRepaint(covariant PatternWavePainter old) =>
       old.pattern.id != pattern.id || old.lit != lit;
 }

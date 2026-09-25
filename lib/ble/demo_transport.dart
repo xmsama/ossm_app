@@ -22,6 +22,7 @@ class DemoTransport extends DeviceTransport {
     'current': 0.2,
     'fault': 0,
     'online': true,
+    'gain': 1.0,
   };
   Timer? _timer, _home;
   bool _connected = false;
@@ -82,6 +83,7 @@ class DemoTransport extends DeviceTransport {
           _state['homed'] = false;
           _home = Timer(const Duration(seconds: 2), () {
             _state['homed'] = true;
+            _state['positionMm'] = 0.0;
             _state['state'] = 'ready';
             _emit();
           });
@@ -90,6 +92,11 @@ class DemoTransport extends DeviceTransport {
           _home?.cancel();
           _state['running'] = false;
           _state['state'] = 'ready';
+          // Firmware holds position wherever the stroke stopped.
+          final travel = (_state['travelMm'] as num).toDouble();
+          final depth = (_state['depth'] as num) / 100 * travel;
+          final stroke = (_state['stroke'] as num) / 100 * travel;
+          _state['positionMm'] = depth - stroke / 2;
         case 'go:clearFault':
           _state['fault'] = 0;
       }

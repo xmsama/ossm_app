@@ -1,6 +1,10 @@
 # OSSM App
 
-Flutter Android 控制器，配套 ESP32-S3 + RS485 + 57AIM30 固件。App 0.2.0，推荐固件 0.3.1。
+Flutter Android 控制器，配套 ESP32-S3 + RS485 + 57AIM30 固件。App 0.2.1，推荐固件 0.3.1。
+
+## 0.2.1 界面更新
+
+三个页面与弹窗统一使用内置 Noto Sans SC 字体，统一标题、正文、说明和按钮字号；采用柔和紫色、低对比边框与圆角控件。字体按 SIL OFL 授权分发，许可随包保留在 assets/fonts/OFL.txt。预览使用同一字体，不再替换为 Windows 系统字体。
 
 ## 已实现
 
@@ -68,7 +72,7 @@ Flutter / Dart：`H:\flutter`；Android SDK：`H:\android-sdk`。
 
 - 静态分析：无问题。
 - 10 项自动化测试：协议 UUID / JSON、首启与回零门禁、遥测确认、滑条合并 / 限幅、急停优先、断线 / 故障门禁、状态失效、定时停止、预设不自启、两种屏幕尺寸。
-- 页面渲染检查：`flutter test tools/capture_ui_test.dart`（本机中文字体和 Flutter 字体路径，供开发预览）。
+- 页面渲染检查：`flutter test tools/capture_ui_test.dart`（使用 App 内置中文字体和本机 Flutter 图标字体，供开发预览）。
 - 固件：ESP32-S3 8MB 配置编译成功；未进行硬件动作验收。
 
 ## 目录

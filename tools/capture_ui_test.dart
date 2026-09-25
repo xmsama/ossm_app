@@ -23,9 +23,9 @@ void main() {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     await tester.runAsync(() async {
-      final font = FontLoader('ReviewFont');
+      final font = FontLoader('OssmSans');
       font.addFont(
-        File('C:/Windows/Fonts/msyh.ttc')
+        File('assets/fonts/NotoSansSC.ttf')
             .readAsBytes()
             .then((v) => ByteData.sublistView(v)),
       );
@@ -47,9 +47,7 @@ void main() {
         key: key,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: theme.copyWith(
-            textTheme: theme.textTheme.apply(fontFamily: 'ReviewFont'),
-          ),
+          theme: theme,
           home: AppShell(session: s),
         ),
       ),

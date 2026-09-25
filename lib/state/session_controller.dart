@@ -11,6 +11,9 @@ import '../ble/device_transport.dart';
 import '../ble/rad_protocol.dart';
 import '../models/stroke_pattern.dart';
 
+/// Coarse visual tone of the machine state.
+enum DeviceTone { off, waiting, ready, live, fault }
+
 class SessionController extends ChangeNotifier {
   SessionController({
     DeviceTransport? transport,
@@ -44,7 +47,7 @@ class SessionController extends ChangeNotifier {
   static const minSpan = 1.0;
   bool homed = false, online = false, running = false;
   double travelMm = 0, speed = 0, depth = 60, stroke = 40, sensation = 50;
-  double voltage = 0, tempC = 0, current = 0, positionMm = 0;
+  double voltage = 0, tempC = 0, current = 0, positionMm = 0, gain = 1;
   int patternIndex = 0, fault = 0, strategy = 0;
   String machineState = 'unknown';
   bool get connected => transport.connected;
@@ -76,6 +79,46 @@ class SessionController extends ChangeNotifier {
   double get depthMm => depth / 100 * travelMm;
   double get strokeMm => stroke / 100 * travelMm;
   double get shallowMm => shallow / 100 * travelMm;
+  bool get stopping => machineState == 'stopping' || _awaitingStop;
+  bool get faulted => fault != 0 || machineState == 'fault';
+
+  /// Short machine state for the status chip.
+  String get stateLabel {
+    if (!connected) return '未连接';
+    if (!fresh) return '同步中';
+    if (faulted) return '故障';
+    if (!online) return '电机离线';
+    if (homing) return '回零中';
+    if (stopping) return '停止中';
+    if (running) return '运行中';
+    if (!homed) return '未回零';
+    return '就绪';
+  }
+
+  DeviceTone get tone {
+    if (!connected) return DeviceTone.off;
+    if (faulted || (fresh && !online)) return DeviceTone.fault;
+    if (running && !stopping) return DeviceTone.live;
+    if (fresh && homed && !homing && !stopping) return DeviceTone.ready;
+    return DeviceTone.waiting;
+  }
+
+  /// Modbus drive alarm codes (firmware Constants.h / YZ-Modbus.md).
+  static String describeFault(int code) => switch (code) {
+    0 => '正常',
+    0x10 => '驱动器电池报警',
+    0x12 => '电机堵转',
+    0x14 => '失速 / 跟随超差',
+    0x15 => '过压（超过 52 V）',
+    0x20 => '驱动器通信中断',
+    _ => '驱动器报警',
+  };
+  String get faultText {
+    if (fault == 0 && machineState == 'fault') return '总线或驱动故障';
+    final hex = '0x${fault.toRadixString(16).padLeft(2, '0').toUpperCase()}';
+    return fault == 0 ? describeFault(0) : '${describeFault(fault)} · $hex';
+  }
+
   String get status {
     if (!connected) return '请在设备页连接 OSSM';
     if (!fresh) return '正在等待设备状态';
@@ -171,6 +214,7 @@ class SessionController extends ChangeNotifier {
     tempC = number('temp', tempC);
     current = number('current', current);
     positionMm = number('positionMm', positionMm);
+    gain = number('gain', gain).clamp(0, 1).toDouble();
     travelMm = number('travelMm', travelMm);
     strategy = number('strategy', strategy.toDouble()).toInt();
     if (!_dirty && !_sending && !busy) {
@@ -280,6 +324,27 @@ class SessionController extends ChangeNotifier {
     if (!canEdit) return;
     speed = (speed + delta).clamp(0, speedLimit);
     _changed();
+  }
+
+  void setSpeed(double value) {
+    if (!canEdit) return;
+    speed = value.clamp(0, speedLimit).roundToDouble();
+    _changed();
+  }
+
+  /// 0 KeyPoint, 2 PositionStream. Firmware briefly cuts motor power on
+  /// change, so only allowed while stopped. 1 (VelocityStream) does not move
+  /// on the Modbus drive and is not offered.
+  Future<void> setStrategy(int value) async {
+    if (!canEdit || running || (value != 0 && value != 2)) return;
+    busy = true;
+    await _guard(() async {
+      await transport.request('session.apply', args: {'strategy': value});
+      strategy = value;
+      _log(value == 0 ? '已切换为关键点运动' : '已切换为平滑位置流');
+    });
+    busy = false;
+    _notify();
   }
 
   void setSensation(double value) {
